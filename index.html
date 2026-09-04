@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Controle de Entradas</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+  <style>
+    :root{
+      --paper:#F6F1E6; --paper-2:#EFE8D8; --ink:#20293A;
+      --ink-soft:#4B5567; --rule:#C9BFA8; --rule-soft:#DCD4C0;
+      --brick:#8B3A3A; --brick-dark:#6E2D2D; --white:#FFFDF8;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0}
+    body{
+      background:var(--paper-2);font-family:'IBM Plex Sans',sans-serif;
+      color:var(--ink);padding:18px 12px 60px;-webkit-font-smoothing:antialiased;
+    }
+    .sheet{max-width:520px;margin:0 auto;background:var(--paper);border:1px solid var(--rule);
+      border-radius:2px;box-shadow:0 1px 0 var(--rule-soft)}
+    .masthead{padding:22px 20px 16px;border-bottom:2px solid var(--ink);text-align:center}
+    .masthead h1{font-family:'Lora',serif;font-weight:700;font-size:22px;margin:0}
+    .masthead .sub{font-size:12px;color:var(--ink-soft);margin-top:4px;font-style:italic;font-family:'Lora',serif}
+    .userbar{display:flex;justify-content:space-between;align-items:center;padding:10px 20px;
+      background:var(--ink);color:var(--paper);font-size:12px}
+    .userbar button{background:none;border:1px solid rgba(255,255,255,.4);color:var(--paper);
+      border-radius:3px;padding:5px 10px;font-size:11px;cursor:pointer}
+    .tabs{display:flex;border-bottom:1px solid var(--rule)}
+    .tab{flex:1;text-align:center;padding:12px 8px;font-size:13px;font-family:'Lora',serif;
+      color:var(--ink-soft);cursor:pointer;border-bottom:2px solid transparent}
+    .tab.active{color:var(--ink);border-bottom-color:var(--brick);font-weight:600}
+    .login-wrap{padding:40px 24px}
+    .login-wrap .field{margin-bottom:14px}
+    .login-wrap label{display:block;font-size:12px;color:var(--ink-soft);margin-bottom:4px}
+    .login-wrap input{width:100%;border:1px solid var(--rule);background:var(--white);border-radius:3px;
+      padding:10px;font-size:15px;font-family:'IBM Plex Sans',sans-serif;color:var(--ink);outline:none}
+    .login-wrap input:focus{border-color:var(--brick)}
+    .login-error{color:var(--brick);font-size:12px;margin-top:10px;min-height:14px}
+    .login-hint{font-size:11px;color:var(--ink-soft);margin-top:18px;text-align:center;line-height:1.5}
+    .fields{padding:16px 20px 4px;display:grid;gap:12px}
+    .field label{display:block;font-size:11px;color:var(--ink-soft);margin-bottom:3px}
+    .field input{width:100%;border:none;border-bottom:1.5px solid var(--rule);background:transparent;
+      font-family:'Lora',serif;font-size:16px;color:var(--ink);padding:4px 2px 6px;outline:none}
+    .field input:focus{border-bottom-color:var(--brick)}
+    .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .section{padding:18px 20px 6px}
+    .section-title{font-family:'Lora',serif;font-weight:600;font-size:14px;color:var(--ink);
+      border-bottom:2px solid var(--ink);padding-bottom:6px;margin-bottom:2px;display:flex;
+      justify-content:space-between;align-items:baseline}
+    .section-title .hint{font-size:10px;color:var(--ink-soft);font-weight:400;font-style:italic}
+    .ledger-row{display:grid;grid-template-columns:1fr 120px;align-items:center;gap:10px;
+      padding:11px 0;border-bottom:1px solid var(--rule-soft)}
+    .ledger-row .item-name{font-size:14px}
+    .amount-wrap{position:relative}
+    .amount-wrap::before{content:"R$";position:absolute;left:6px;top:50%;transform:translateY(-50%);
+      font-size:12px;color:var(--ink-soft)}
+    .ledger-row input.amount{width:100%;text-align:right;border:1px solid var(--rule);
+      background:var(--white);border-radius:3px;padding:7px 8px 7px 26px;font-size:14px;
+      font-family:'IBM Plex Sans',sans-serif;color:var(--ink);outline:none}
+    .ledger-row input.amount:focus{border-color:var(--brick)}
+    .total-row{display:flex;justify-content:space-between;align-items:center;padding:14px 0 6px;
+      margin-top:4px;border-top:2px solid var(--ink)}
+    .total-row .label{font-family:'Lora',serif;font-weight:700;font-size:14px}
+    .total-row .value{font-family:'Lora',serif;font-weight:700;font-size:20px;color:var(--brick)}
+    .grand-total{margin:18px 20px 0;padding:14px 16px;background:var(--ink);border-radius:3px;
+      display:flex;justify-content:space-between;align-items:center}
+    .grand-total .label{color:var(--paper);font-family:'Lora',serif;font-size:13px}
+    .grand-total .value{color:#E7D9B8;font-family:'Lora',serif;font-weight:700;font-size:22px}
+    .obs{padding:16px 20px 4px}
+    .obs label{font-size:11px;color:var(--ink-soft);display:block;margin-bottom:5px}
+    .obs textarea{width:100%;min-height:54px;border:1px solid var(--rule);background:var(--white);
+      border-radius:3px;padding:8px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;color:var(--ink);
+      resize:vertical;outline:none}
+    .obs textarea:focus{border-color:var(--brick)}
+    .sig-section{padding:22px 20px 20px}
+    .sig-pair{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:8px}
+    .sig-box{display:flex;flex-direction:column}
+    .sig-canvas-wrap{border:1px solid var(--rule);background:var(--white);border-radius:3px;touch-action:none}
+    canvas.sig-canvas{display:block;width:100%;height:120px}
+    .sig-caption{display:flex;justify-content:space-between;align-items:center;margin-top:6px}
+    .sig-caption .name{font-size:11px;color:var(--ink-soft);border-top:1px solid var(--rule);
+      padding-top:4px;flex:1}
+    .sig-clear{background:none;border:none;color:var(--brick);font-size:11px;cursor:pointer;
+      padding:2px 0 0 8px;text-decoration:underline;font-family:'IBM Plex Sans',sans-serif}
+    .actions{padding:6px 20px 24px;display:grid;gap:10px}
+    button.primary{background:var(--brick);color:var(--white);border:none;border-radius:3px;padding:14px;
+      font-size:15px;font-weight:600;font-family:'IBM Plex Sans',sans-serif;cursor:pointer}
+    button.primary:active{background:var(--brick-dark)}
+    button.primary:disabled{opacity:.5;cursor:not-allowed}
+    button.secondary{background:transparent;color:var(--ink-soft);border:1px solid var(--rule);border-radius:3px;
+      padding:11px;font-size:13px;font-family:'IBM Plex Sans',sans-serif;cursor:pointer}
+    .status{text-align:center;font-size:12px;color:var(--ink-soft);padding:0 20px 18px;min-height:14px}
+    .history{padding:16px 20px 24px}
+    .hist-item{border:1px solid var(--rule);background:var(--white);border-radius:3px;padding:12px 14px;margin-bottom:10px}
+    .hist-item .top{display:flex;justify-content:space-between;font-family:'Lora',serif;font-weight:600;font-size:14px;gap:10px}
+    .hist-item .meta{font-size:12px;color:var(--ink-soft);margin-top:3px;word-break:break-word}
+    .hist-item .totals{font-size:12px;margin-top:6px}
+    .hist-item .val{color:var(--brick);font-weight:600}
+    .hist-item .dl{margin-top:8px;display:inline-block;font-size:12px;color:var(--brick);
+      text-decoration:underline;cursor:pointer;background:none;border:none;padding:0;font-family:'IBM Plex Sans',sans-serif}
+    .empty-state{text-align:center;color:var(--ink-soft);font-size:13px;padding:30px 10px}
+    @media(max-width:420px){.sig-pair{grid-template-columns:1fr}.ledger-row{grid-template-columns:1fr 110px}}
+  </style>
+</head>
+
+<body>
+<div class="sheet" id="sheet">
+
+  <div id="view-login">
+    <div class="masthead">
+      <h1>Controle de Entradas</h1>
+      <div class="sub">Dízimos, ofertas e primícias</div>
+    </div>
+    <div class="login-wrap">
+      <div class="field">
+        <label for="login-email">E-mail</label>
+        <input id="login-email" type="email" autocomplete="username">
+      </div>
+      <div class="field">
+        <label for="login-senha">Senha</label>
+        <input id="login-senha" type="password" autocomplete="current-password">
+      </div>
+      <button class="primary" id="btn-login" type="button" style="width:100%;margin-top:6px;">Entrar</button>
+      <div class="login-error" id="login-error"></div>
+      <div class="login-hint">Acesso restrito à equipe. Se você ainda não tem uma senha, peça ao administrador para te cadastrar.</div>
+    </div>
+  </div>
+
+  <div id="view-app" style="display:none;">
+    <div class="masthead">
+      <h1>Controle de Entradas</h1>
+      <div class="sub">Dízimos, ofertas e primícias</div>
+    </div>
+
+    <div class="userbar">
+      <span id="user-email"></span>
+      <button id="btn-logout" type="button">Sair</button>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" data-tab="novo">Novo fechamento</div>
+      <div class="tab" data-tab="historico">Histórico</div>
+    </div>
+
+    <div id="tab-novo">
+      <div class="fields">
+        <div class="field">
+          <label for="f-nome">Nome</label>
+          <input id="f-nome" type="text" placeholder="Responsável pelo controle">
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label for="f-referente">Referente</label>
+            <input id="f-referente" type="text" placeholder="Ex.: Culto de celebração">
+          </div>
+          <div class="field">
+            <label for="f-data">Data</label>
+            <input id="f-data" type="date">
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span>Itens</span><span class="hint">soma por categoria</span></div>
+        <div id="itens-list"></div>
+        <div class="total-row"><span class="label">Total dos itens</span><span class="value" id="total-itens">R$ 0,00</span></div>
+      </div>
+
+      <div class="obs">
+        <label for="f-obs">Observações</label>
+        <textarea id="f-obs" placeholder="Anotações sobre a entrada, se necessário"></textarea>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><span>Fechamento</span><span class="hint">discriminação dos valores</span></div>
+        <div id="fecha-list"></div>
+        <div class="total-row"><span class="label">Total do fechamento</span><span class="value" id="total-fecha">R$ 0,00</span></div>
+      </div>
+
+      <div class="grand-total">
+        <span class="label">Diferença (itens − fechamento)</span>
+        <span class="value" id="total-dif">R$ 0,00</span>
+      </div>
+
+      <div class="sig-section">
+        <div class="section-title"><span>Assinaturas</span></div>
+        <div class="sig-pair">
+          <div class="sig-box">
+            <div class="sig-canvas-wrap"><canvas class="sig-canvas" id="sig1"></canvas></div>
+            <div class="sig-caption"><span class="name">Assinatura 1</span><button class="sig-clear" data-target="sig1" type="button">limpar</button></div>
+          </div>
+          <div class="sig-box">
+            <div class="sig-canvas-wrap"><canvas class="sig-canvas" id="sig2"></canvas></div>
+            <div class="sig-caption"><span class="name">Assinatura 2</span><button class="sig-clear" data-target="sig2" type="button">limpar</button></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="actions" id="actions">
+        <button class="primary" id="btn-export" type="button">Salvar e gerar PDF</button>
+        <button class="secondary" id="btn-reset" type="button">Limpar formulário</button>
+      </div>
+      <div class="status" id="status"></div>
+    </div>
+
+    <div id="tab-historico" style="display:none;">
+      <div class="history" id="history-list">
+        <div class="empty-state">Carregando histórico...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = "https://tcuaifzbwkgygaggrxqc.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRjdWFpZnpid2tneWdhZ2dyeHFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1MzkzNDUsImV4cCI6MjEwNDExNTM0NX0.6rZe_xpz0fMBb7BlKLG1CXWMx5CGB_zMF51g4Uh64ik";
+
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+(() => {
+  const itens = ["Dízimos","Ofertas Avulsas","Ofertas das Células","Primícias","Outros"];
+  const fecha = ["Espécie","Depósito / PIX","Cartão","Moeda","Outros"];
+
+  const $ = id => document.getElementById(id);
+
+  function buildRows(container, names, prefix) {
+    const el = $(container);
+    el.innerHTML = "";
+    names.forEach((name, i) => {
+      const row = document.createElement("div");
+      row.className = "ledger-row";
+      row.innerHTML = `
+        <div class="item-name"></div>
+        <div class="amount-wrap">
+          <input class="amount" inputmode="decimal" placeholder="0,00" id="${prefix}-${i}" autocomplete="off">
+        </div>`;
+      row.querySelector(".item-name").textContent = name;
+      el.appendChild(row);
+    });
+  }
+
+  buildRows("itens-list", itens, "it");
+  buildRows("fecha-list", fecha, "fc");
+
+  function parseVal(v) {
+    if (!v) return 0;
+    v = v.toString().trim().replace(/\./g, "").replace(",", ".");
+    const n = parseFloat(v);
+    return Number.isNaN(n) ? 0 : n;
+  }
+
+  function fmt(n) {
+    return "R$ " + Number(n).toLocaleString("pt-BR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  }
+
+  function sumGroup(prefix, count) {
+    let total = 0;
+    for (let i = 0; i < count; i++) total += parseVal($(`${prefix}-${i}`).value);
+    return total;
+  }
+
+  function groupToObj(prefix, names) {
+    const obj = {};
+    names.forEach((name, i) => obj[name] = parseVal($(`${prefix}-${i}`).value));
+    return obj;
+  }
+
+  function recalc() {
+    const tI = sumGroup("it", itens.length);
+    const tF = sumGroup("fc", fecha.length);
+    $("total-itens").textContent = fmt(tI);
+    $("total-fecha").textContent = fmt(tF);
+    const dif = tI - tF;
+    $("total-dif").textContent = (dif < 0 ? "-" : "") + fmt(Math.abs(dif));
+  }
+
+  $("itens-list").addEventListener("input", recalc);
+  $("fecha-list").addEventListener("input", recalc);
+  recalc();
+
+  function setupPad(canvasId) {
+    const canvas = $(canvasId);
+    const ctx = canvas.getContext("2d");
+    let drawing = false, last = null;
+
+    function resize() {
+      const ratio = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * ratio;
+      canvas.height = rect.height * ratio;
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      ctx.lineWidth = 2;
+      ctx.lineCap = "round";
+      ctx.strokeStyle = "#20293A";
+    }
+
+    resize();
+    window.addEventListener("resize", resize);
+
+    function pos(e) {
+      const rect = canvas.getBoundingClientRect();
+      return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    }
+
+    function start(e) {
+      drawing = true;
+      last = pos(e);
+      canvas.setPointerCapture?.(e.pointerId);
+      e.preventDefault();
+    }
+
+    function move(e) {
+      if (!drawing) return;
+      const p = pos(e);
+      ctx.beginPath();
+      ctx.moveTo(last.x, last.y);
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+      last = p;
+      e.preventDefault();
+    }
+
+    function end() {
+      drawing = false;
+      last = null;
+    }
+
+    canvas.addEventListener("pointerdown", start);
+    canvas.addEventListener("pointermove", move);
+    canvas.addEventListener("pointerup", end);
+    canvas.addEventListener("pointercancel", end);
+    canvas.addEventListener("pointerleave", () => {});
+
+    return {
+      clear: () => ctx.clearRect(0, 0, canvas.width, canvas.height)
+    };
+  }
+
+  const pad1 = setupPad("sig1");
+  const pad2 = setupPad("sig2");
+
+  document.querySelectorAll(".sig-clear").forEach(btn => {
+    btn.addEventListener("click", () => {
+      btn.getAttribute("data-target") === "sig1" ? pad1.clear() : pad2.clear();
+    });
+  });
+
+  function resetForm() {
+    $("f-nome").value = "";
+    $("f-referente").value = "";
+    $("f-data").value = "";
+    $("f-obs").value = "";
+    document.querySelectorAll(".amount").forEach(i => i.value = "");
+    pad1.clear();
+    pad2.clear();
+    recalc();
+    $("status").textContent = "";
+  }
+
+  $("btn-reset").addEventListener("click", resetForm);
+
+  document.querySelectorAll(".tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+      tab.classList.add("active");
+      const target = tab.dataset.tab;
+      $("tab-novo").style.display = target === "novo" ? "" : "none";
+      $("tab-historico").style.display = target === "historico" ? "" : "none";
+      if (target === "historico") loadHistory();
+    });
+  });
+
+  $("btn-export").addEventListener("click", async () => {
+    const status = $("status");
+    const actions = $("actions");
+    const btn = $("btn-export");
+
+    btn.disabled = true;
+    actions.style.visibility = "hidden";
+    status.textContent = "Gerando PDF...";
+
+    try {
+      const captureEl = $("view-app");
+      const canvas = await html2canvas(captureEl, {
+        scale: 2,
+        backgroundColor: "#F6F1E6",
+        useCORS: true
+      });
+
+      actions.style.visibility = "visible";
+
+      const imgData = canvas.toDataURL("image/png");
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF("p", "pt", "a4");
+
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const imgRatio = canvas.height / canvas.width;
+
+      let imgWidth = pageWidth - 40;
+      let imgHeight = imgWidth * imgRatio;
+
+      if (imgHeight > pageHeight - 40) {
+        imgHeight = pageHeight - 40;
+        imgWidth = imgHeight / imgRatio;
+      }
+
+      const x = (pageWidth - imgWidth) / 2;
+      pdf.addImage(imgData, "PNG", x, 20, imgWidth, imgHeight);
+
+      const nome = ($("f-nome").value || "controle").trim();
+      const referente = $("f-referente").value || "";
+      const dataCulto = $("f-data").value || null;
+      const obs = $("f-obs").value || "";
+      const itensObj = groupToObj("it", itens);
+      const fechaObj = groupToObj("fc", fecha);
+      const totalItens = sumGroup("it", itens.length);
+      const totalFecha = sumGroup("fc", fecha.length);
+
+      status.textContent = "Salvando no banco de dados...";
+
+      const { data: userData, error: userError } = await supabaseClient.auth.getUser();
+      if (userError) throw userError;
+
+      const userId = userData?.user?.id;
+      const userEmail = userData?.user?.email;
+
+      if (!userId) throw new Error("Usuário não autenticado.");
+
+      const pdfBlob = pdf.output("blob");
+      const safeNome = nome.replace(/[^a-zA-Z0-9_-]+/g, "-");
+      const path = `${userId}/${Date.now()}-${safeNome}.pdf`;
+
+      const { error: uploadError } = await supabaseClient
+        .storage.from("pdfs")
+        .upload(path, pdfBlob, {
+          contentType: "application/pdf",
+          upsert: false
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { error: insertError } = await supabaseClient
+        .from("entradas")
+        .insert({
+          created_by: userId,
+          autor_email: userEmail,
+          nome,
+          referente,
+          data_culto: dataCulto,
+          itens: itensObj,
+          fechamento: fechaObj,
+          observacoes: obs,
+          total_itens: totalItens,
+          total_fechamento: totalFecha,
+          pdf_path: path
+        });
+
+      if (insertError) throw insertError;
+
+      status.textContent = "Salvo com sucesso. Baixando o PDF...";
+
+      const filename = `controle-entradas-${safeNome}-${dataCulto || ""}.pdf`;
+      const file = new File([pdfBlob], filename, { type: "application/pdf" });
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            files: [file],
+            title: "Controle de Entradas"
+          });
+          status.textContent = "Salvo e compartilhado com sucesso.";
+        } catch (shareError) {
+          pdf.save(filename);
+          status.textContent = "Salvo no banco de dados. PDF baixado.";
+        }
+      } else {
+        pdf.save(filename);
+        status.textContent = "Salvo no banco de dados. PDF baixado.";
+      }
+
+      resetForm();
+
+    } catch (err) {
+      actions.style.visibility = "visible";
+      status.textContent = "Erro ao salvar: " + (err?.message || "tente novamente.");
+      console.error(err);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  async function loadHistory() {
+    const el = $("history-list");
+    el.innerHTML = '<div class="empty-state">Carregando histórico...</div>';
+
+    const { data, error } = await supabaseClient
+      .from("entradas")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    if (error) {
+      el.innerHTML = '<div class="empty-state">Não foi possível carregar o histórico.</div>';
+      console.error(error);
+      return;
+    }
+
+    if (!data?.length) {
+      el.innerHTML = '<div class="empty-state">Nenhum fechamento registrado ainda.</div>';
+      return;
+    }
+
+    el.innerHTML = "";
+
+    data.forEach(row => {
+      const div = document.createElement("div");
+      div.className = "hist-item";
+
+      const dataFmt = row.data_culto
+        ? new Date(row.data_culto + "T00:00:00").toLocaleDateString("pt-BR")
+        : "—";
+
+      const top = document.createElement("div");
+      top.className = "top";
+      const nome = document.createElement("span");
+      nome.textContent = row.nome || "Sem nome";
+      const data = document.createElement("span");
+      data.textContent = dataFmt;
+      top.append(nome, data);
+
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      meta.textContent = `${row.referente || ""} · lançado por ${row.autor_email || "—"}`;
+
+      const totals = document.createElement("div");
+      totals.className = "totals";
+      totals.innerHTML = "Itens: <span class='val'></span> · Fechamento: <span class='val'></span>";
+      totals.querySelectorAll(".val")[0].textContent = fmt(row.total_itens || 0);
+      totals.querySelectorAll(".val")[1].textContent = fmt(row.total_fechamento || 0);
+
+      const button = document.createElement("button");
+      button.className = "dl";
+      button.type = "button";
+      button.textContent = "Baixar PDF";
+      button.dataset.path = row.pdf_path || "";
+
+      div.append(top, meta, totals, button);
+      el.appendChild(div);
+    });
+
+    el.querySelectorAll(".dl").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const path = btn.dataset.path;
+        if (!path) return;
+
+        btn.disabled = true;
+        btn.textContent = "Abrindo...";
+
+        const { data, error } = await supabaseClient
+          .storage.from("pdfs")
+          .createSignedUrl(path, 300);
+
+        if (error || !data?.signedUrl) {
+          btn.textContent = "Erro ao abrir";
+          btn.disabled = false;
+          return;
+        }
+
+        window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+        btn.textContent = "Baixar PDF";
+        btn.disabled = false;
+      });
+    });
+  }
+
+  function showApp(user) {
+    $("view-login").style.display = "none";
+    $("view-app").style.display = "";
+    $("user-email").textContent = user.email || "";
+  }
+
+  function showLogin() {
+    $("view-login").style.display = "";
+    $("view-app").style.display = "none";
+  }
+
+  $("btn-login").addEventListener("click", async () => {
+    const email = $("login-email").value.trim();
+    const senha = $("login-senha").value;
+    const errEl = $("login-error");
+
+    errEl.textContent = "";
+
+    if (!email || !senha) {
+      errEl.textContent = "Preencha e-mail e senha.";
+      return;
+    }
+
+    const btn = $("btn-login");
+    btn.disabled = true;
+    btn.textContent = "Entrando...";
+
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+      email,
+      password: senha
+    });
+
+    btn.disabled = false;
+    btn.textContent = "Entrar";
+
+    if (error) {
+      errEl.textContent = "E-mail ou senha inválidos.";
+      return;
+    }
+
+    showApp(data.user);
+  });
+
+  $("login-senha").addEventListener("keydown", e => {
+    if (e.key === "Enter") $("btn-login").click();
+  });
+
+  $("btn-logout").addEventListener("click", async () => {
+    await supabaseClient.auth.signOut();
+    showLogin();
+  });
+
+  supabaseClient.auth.onAuthStateChange((_event, session) => {
+    if (session?.user) showApp(session.user);
+    else showLogin();
+  });
+
+  (async () => {
+    const { data } = await supabaseClient.auth.getSession();
+    if (data?.session?.user) showApp(data.session.user);
+    else showLogin();
+  })();
+})();
+</script>
+</body>
+</html>
